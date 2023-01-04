@@ -4,63 +4,64 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract Subscription is Ownable {
-    mapping(address => mapping(address => uint256)) private remainingRuns;
-    mapping(address => mapping(address => uint256)) private lastPaid;
-    mapping(address => mapping(address => uint256)) private amount;
+    mapping(address => uint256) private remainingRuns;
+    mapping(address => uint256) private lastPaid;
+    mapping(address => uint256) private amount;
     address private token;
+    address private merchant;
 
-    constructor(address _token) {
+    constructor(address _token, address _merchant) {
         token = _token;
+        merchant = _merchant;
     }
 
-    modifier eligiblePayment(address _merchant, address _customer) {
-        require(remainingRuns[_merchant][_customer] > 0, "No runs remaining");
+    modifier eligiblePayment(address _customer) {
+        require(remainingRuns[_customer] > 0, "No runs remaining");
         require(
-            (block.timestamp - lastPaid[_merchant][_customer]) < 30 days,
+            (block.timestamp - lastPaid[_customer]) < 28 days,
             "Already run within a month"
         );
-        require(remainingRuns[_merchant][_customer] > 0, "No runs remaining");
+        require(remainingRuns[_customer] > 0, "No runs remaining");
         _;
     }
 
-    modifier onlyAllowed(address _merchant) {
+    modifier onlyAllowed {
         require(
-            owner() == msg.sender || _merchant == msg.sender,
+            owner() == msg.sender || merchant == msg.sender,
             "Not allowed user"
         );
         _;
     }
 
-    modifier enoughAllowance(address _merchant, address _customer) {
+    modifier enoughAllowance( address _customer) {
         require(
             IERC20(token).allowance(_customer, address(this)) >=
-                amount[_merchant][_customer],
+                amount[_customer],
             "Not enough allowance"
         );
         _;
     }
 
     function createSubscription(
-        address _merchant,
         address _customer,
         uint256 _runs
     ) external onlyOwner {
-        remainingRuns[_merchant][_customer] = _runs;
+        remainingRuns[_customer] = _runs;
     }
 
-    function runSubscription(address _merchant, address _customer)
+    function runSubscription(address _customer)
         external
-        eligiblePayment(_merchant, _customer)
-        onlyAllowed(_merchant)
-        enoughAllowance(_merchant, _customer)
+        eligiblePayment(_customer)
+        onlyAllowed
+        enoughAllowance(_customer)
     {
         bool success = IERC20(token).transferFrom(
             _customer,
-            _merchant,
-            amount[_merchant][_customer]
+            merchant,
+            amount[_customer]
         );
         require(success, "Transfer failed");
-        lastPaid[_merchant][_customer] = block.timestamp;
-        remainingRuns[_merchant][_customer] -= 1;
+        lastPaid[_customer] = block.timestamp;
+        remainingRuns[_customer] -= 1;
     }
 }

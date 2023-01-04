@@ -2,8 +2,9 @@
 pragma solidity ^0.8.17;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/security/Pausable.sol";
 
-contract Subscription is Ownable {
+contract Subscription is Ownable, Pausable {
     mapping(address => uint256) private remainingRuns;
     mapping(address => uint256) private lastPaid;
     mapping(address => uint256) private amount;

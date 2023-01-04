@@ -26,7 +26,7 @@ contract Subscription is Ownable, Pausable {
         _;
     }
 
-    modifier onlyAllowed {
+    modifier onlyAllowed() {
         require(
             owner() == msg.sender || merchant == msg.sender,
             "Not allowed user"
@@ -34,7 +34,7 @@ contract Subscription is Ownable, Pausable {
         _;
     }
 
-    modifier enoughAllowance( address _customer) {
+    modifier enoughAllowance(address _customer) {
         require(
             IERC20(token).allowance(_customer, address(this)) >=
                 amount[_customer],
@@ -43,18 +43,20 @@ contract Subscription is Ownable, Pausable {
         _;
     }
 
-    function createSubscription(
-        address _customer,
-        uint256 _runs
-    ) external onlyOwner {
+    function createSubscription(address _customer, uint256 _runs)
+        external
+        onlyOwner
+        whenNotPaused
+    {
         remainingRuns[_customer] = _runs;
     }
 
     function runSubscription(address _customer)
         external
         eligiblePayment(_customer)
-        onlyAllowed
         enoughAllowance(_customer)
+        onlyAllowed
+        whenNotPaused
     {
         bool success = IERC20(token).transferFrom(
             _customer,

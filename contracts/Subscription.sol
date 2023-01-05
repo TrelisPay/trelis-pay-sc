@@ -43,12 +43,13 @@ contract Subscription is Ownable, Pausable {
         _;
     }
 
-    function createSubscription(address _customer, uint256 _runs)
+    function createSubscription(address _customer, uint256 _runs, uint256 _amount)
         external
         onlyOwner
         whenNotPaused
     {
         remainingRuns[_customer] = _runs;
+        amount[_customer] = _amount;
     }
 
     function runSubscription(address _customer)

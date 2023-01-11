@@ -5,9 +5,15 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 
 contract Subscription is Ownable, Pausable {
+    enum subscriptionTypeEnum {
+        MONTHLY,
+        YEARLY
+    }
+
     mapping(address => uint256) private remainingRuns;
     mapping(address => uint256) private lastPaid;
     mapping(address => uint256) private amount;
+    mapping(address => subscriptionTypeEnum) subscriptionType;
     address private token;
     address private merchant;
 
@@ -18,10 +24,17 @@ contract Subscription is Ownable, Pausable {
 
     modifier eligiblePayment(address _customer) {
         require(remainingRuns[_customer] > 0, "No runs remaining");
-        require(
-            (block.timestamp - lastPaid[_customer]) < 28 days,
-            "Already run within a month"
-        );
+        if (subscriptionType[_customer] == subscriptionTypeEnum.MONTHLY) {
+            require(
+                (block.timestamp - lastPaid[_customer]) >= 27 days,
+                "Already run within a month"
+            );
+        } else {
+            require(
+                (block.timestamp - lastPaid[_customer]) >= 364 days,
+                "Already run within a year"
+            );
+        }
         require(remainingRuns[_customer] > 0, "No runs remaining");
         _;
     }
@@ -43,13 +56,15 @@ contract Subscription is Ownable, Pausable {
         _;
     }
 
-    function createSubscription(address _customer, uint256 _runs, uint256 _amount)
-        external
-        onlyOwner
-        whenNotPaused
-    {
+    function createSubscription(
+        address _customer,
+        uint256 _runs,
+        uint256 _amount,
+        subscriptionTypeEnum _subscriptionType
+    ) external onlyOwner whenNotPaused {
         remainingRuns[_customer] = _runs;
         amount[_customer] = _amount;
+        subscriptionType[_customer] = _subscriptionType;
     }
 
     function runSubscription(address _customer)

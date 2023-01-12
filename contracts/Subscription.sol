@@ -35,7 +35,6 @@ contract Subscription is Ownable, Pausable {
                 "Already run within a year"
             );
         }
-        require(remainingRuns[_customer] > 0, "No runs remaining");
         _;
     }
 

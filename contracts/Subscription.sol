@@ -55,6 +55,22 @@ contract Subscription is Ownable, Pausable {
         _;
     }
 
+    function checkSubscription(address _customer)
+        external
+        view
+        returns (
+            uint256 _allowance,
+            uint256 _lastPaid,
+            uint256 _runs
+        )
+    {
+        return (
+            IERC20(token).allowance(_customer, address(this)),
+            lastPaid[_customer],
+            remainingRuns[_customer]
+        );
+    }
+
     function checkCustomerEligibility(address _customer)
         external
         view
@@ -67,9 +83,11 @@ contract Subscription is Ownable, Pausable {
         } else {
             notTimeLocked = (block.timestamp - lastPaid[_customer]) >= 364 days;
         }
-        bool isEnoughAllowance = IERC20(token).allowance(_customer, address(this)) >=
-            amount[_customer];
-        
+        bool isEnoughAllowance = IERC20(token).allowance(
+            _customer,
+            address(this)
+        ) >= amount[_customer];
+
         return isAllowedRuns && notTimeLocked && isEnoughAllowance;
     }
 

@@ -102,6 +102,7 @@ contract Subscription is Ownable, Pausable {
         remainingRuns[_customer] = _runs;
         amount[_customer] = _amount;
         subscriptionType[_customer] = _subscriptionType;
+        lastPaid[_customer] = 0;
     }
 
     function runSubscription(address _customer)

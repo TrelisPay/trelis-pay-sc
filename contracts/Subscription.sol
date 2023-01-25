@@ -61,13 +61,15 @@ contract Subscription is Ownable, Pausable {
         returns (
             uint256 _allowance,
             uint256 _lastPaid,
-            uint256 _runs
+            uint256 _runs,
+            uint256 _subscriptionPrice
         )
     {
         return (
             IERC20(token).allowance(_customer, address(this)),
             lastPaid[_customer],
-            remainingRuns[_customer]
+            remainingRuns[_customer],
+            amount[_customer],
         );
     }
 

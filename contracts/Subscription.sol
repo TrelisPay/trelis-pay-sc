@@ -10,6 +10,15 @@ contract Subscription is Ownable, Pausable {
         YEARLY
     }
 
+    struct CustomerInfo{
+        uint256 remainingRuns;
+        uint256 amount;
+        subscriptionTypeEnum sType;
+        uint256 lastPaid;
+    }
+
+    mapping(address => CustomerInfo) customers;
+
     mapping(address => uint256) private remainingRuns;
     mapping(address => uint256) private lastPaid;
     mapping(address => uint256) private amount;
@@ -73,6 +82,8 @@ contract Subscription is Ownable, Pausable {
         );
     }
 
+    
+
     function checkCustomerEligibility(address _customer)
         external
         view
@@ -103,6 +114,27 @@ contract Subscription is Ownable, Pausable {
         amount[_customer] = _amount;
         subscriptionType[_customer] = _subscriptionType;
         lastPaid[_customer] = 0;
+    }
+
+    function createSubscription2(
+        address _customer,
+        uint256 _runs,
+        uint256 _amount,
+        subscriptionTypeEnum _subscriptionType
+    ) external onlyOwner whenNotPaused {
+        customers[_customer] = CustomerInfo(_runs, _amount, _subscriptionType, 0);     
+    }
+
+    function createSubscription3(
+        address _customer,
+        uint256 _runs,
+        uint256 _amount,
+        subscriptionTypeEnum _subscriptionType
+    ) external onlyOwner whenNotPaused {
+        remainingRuns[_customer] = _runs;
+        amount[_customer] = _amount;
+        subscriptionType[_customer] = _subscriptionType;
+        // lastPaid[_customer] = 0;
     }
 
     function runSubscription(address _customer)

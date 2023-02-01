@@ -20,16 +20,34 @@ describe("Subscription", function () {
   }
 
 describe("Test Suite", function () {
-    it("Run subscription once", async function () {
-      const { subscription, otherAccount } = await loadFixture(deployOneYearSubscriptionFixture);
-      let tx = await subscription.createSubscription(otherAccount.address, 11, 11, 1);
-      await tx.wait();
-    });
-    it("Run subscription once", async function () {
+    
+    it("Run subscription thrice", async function () {
       const { subscription, otherAccount } = await loadFixture(deployOneYearSubscriptionFixture);
       let tx = await subscription.createSubscription(otherAccount.address, 11, 11, 1);
       await tx.wait();
       tx = await subscription.createSubscription(otherAccount.address, 11, 11, 1);
+      await tx.wait();
+      tx = await subscription.createSubscription(otherAccount.address, 11, 11, 1);
+      await tx.wait();
+    });
+
+    it("Run subscription2 thrice", async function () {
+      const { subscription, otherAccount } = await loadFixture(deployOneYearSubscriptionFixture);
+      let tx = await subscription.createSubscription2(otherAccount.address, 11, 11, 1);
+      await tx.wait();
+      tx = await subscription.createSubscription2(otherAccount.address, 11, 11, 1);
+      await tx.wait();
+      tx = await subscription.createSubscription2(otherAccount.address, 11, 11, 1);
+      await tx.wait();
+    });
+
+    it("Run subscription3 thrice", async function () {
+      const { subscription, otherAccount } = await loadFixture(deployOneYearSubscriptionFixture);
+      let tx = await subscription.createSubscription3(otherAccount.address, 11, 11, 1);
+      await tx.wait();
+      tx = await subscription.createSubscription3(otherAccount.address, 11, 11, 1);
+      await tx.wait();
+      tx = await subscription.createSubscription3(otherAccount.address, 11, 11, 1);
       await tx.wait();
     });
 

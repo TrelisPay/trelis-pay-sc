@@ -5,13 +5,13 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 
 abstract contract ReentrancyGuard {
-    bool internal locked;
+    mapping (address => bool) internal locked;
 
-    modifier noReentrant() {
-        require(!locked, "One transaction is already running");
-        locked = true;
+    modifier noReentrant(address _customer) {
+        require(!locked[_customer], "One transaction is already running");
+        locked[_customer] = true;
         _;
-        locked = false;
+        locked[_customer] = false;
     }
 }
 
@@ -109,7 +109,7 @@ contract Subscription is Ownable, Pausable, ReentrancyGuard {
         uint256 _runs,
         uint256 _amount,
         subscriptionTypeEnum _subscriptionType
-    ) external onlyOwner whenNotPaused noReentrant{
+    ) external onlyOwner whenNotPaused {
         remainingRuns[_customer] = _runs;
         amount[_customer] = _amount;
         subscriptionType[_customer] = _subscriptionType;
@@ -120,7 +120,7 @@ contract Subscription is Ownable, Pausable, ReentrancyGuard {
         external
         eligiblePayment(_customer)
         enoughAllowance(_customer)
-        noReentrant
+        noReentrant(_customer)
         onlyAllowed
         whenNotPaused
     {

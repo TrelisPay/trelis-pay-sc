@@ -41,8 +41,8 @@ contract Subscription is Ownable, Pausable {
         view
         returns (
             uint256 _allowance,
-            uint256 _lastPaid,
-            uint256 _runs,
+            uint96 _lastPaid,
+            uint96 _runs,
             uint256 _subscriptionPrice
         )
     {

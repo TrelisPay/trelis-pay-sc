@@ -10,21 +10,20 @@ contract Subscription is Ownable, Pausable {
         MONTHLY,
         YEARLY
     }
-    
-    address public token;
+
     address public merchant;
 
     struct Subscription {
         uint96 remainingRuns;
         uint96 lastPaid;
         uint96 amount;
+        address token;
         SubscriptionTypeEnum subscriptionType;
     }
 
     mapping(address => Subscription) public subscriptions;
 
-    constructor(address _token, address _merchant) {
-        token = _token;
+    constructor(address _merchant) {
         merchant = _merchant;
     }
 
@@ -43,7 +42,8 @@ contract Subscription is Ownable, Pausable {
             uint256 _allowance,
             uint96 _lastPaid,
             uint96 _runs,
-            uint256 _subscriptionPrice
+            uint256 _subscriptionPrice,
+            address _token
         )
     {
         Subscription memory subscription = subscriptions[_customer];
@@ -51,7 +51,8 @@ contract Subscription is Ownable, Pausable {
             IERC20(token).allowance(_customer, address(this)),
             subscription.lastPaid,
             subscription.remainingRuns,
-            subscription.amount 
+            subscription.amount,
+            subscription.token
         );
     }
 
@@ -59,13 +60,15 @@ contract Subscription is Ownable, Pausable {
         address _customer,
         uint96 _runs,
         uint96 _amount,
-        SubscriptionTypeEnum _subscriptionType
+        SubscriptionTypeEnum _subscriptionType,
+        address _token
     ) external onlyOwner whenNotPaused {
         Subscription memory subscription = Subscription({
             remainingRuns:_runs,
             lastPaid: uint96(block.timestamp),
             amount: _amount,
-            subscriptionType: _subscriptionType
+            subscriptionType: _subscriptionType,
+            token: _token
         });
         subscriptions[_customer] = subscription;
     }
@@ -99,7 +102,7 @@ contract Subscription is Ownable, Pausable {
         subscriptions[_customer] = subscription;
 
         // Interactions
-        bool success = IERC20(token).transferFrom(
+        bool success = IERC20(subscription.token).transferFrom(
             _customer,
             merchant,
             uint256(subscription.amount)

@@ -70,6 +70,27 @@ contract Subscription is Ownable, Pausable {
         subscriptions[_customer] = subscription;
     }
 
+    function checkCustomerEligibility(address _customer)
+        external
+        view
+        returns (bool)
+    {
+        Subscription memory subscription = subscriptions[_customer];
+        bool isAllowedRuns = subscription.remainingRuns > 0;
+        bool notTimeLocked = true;
+        if (subscription.subscriptionType == subscriptionTypeEnum.MONTHLY) {
+            notTimeLocked = (block.timestamp - subscription.lastPaid) >= 27 days;
+        } else {
+            notTimeLocked = (block.timestamp - subscription.lastPaid) >= 364 days;
+        }
+        bool isEnoughAllowance = IERC20(token).allowance(
+            _customer,
+            address(this)
+        ) >= amount[_customer];
+
+        return isAllowedRuns && notTimeLocked && isEnoughAllowance;
+    }
+
     function runSubscription(address _customer)
         external
         onlyAllowed

@@ -14,14 +14,14 @@ contract Subscription is Ownable, Pausable {
     address public token;
     address public merchant;
 
-    struct Subscription {
+    struct SubscriptionStruct {
         uint96 remainingRuns;
         uint96 lastPaid;
         uint96 amount;
         SubscriptionTypeEnum subscriptionType;
     }
 
-    mapping(address => Subscription) public subscriptions;
+    mapping(address => SubscriptionStruct) public subscriptions;
 
     constructor(address _token, address _merchant) {
         token = _token;
@@ -46,7 +46,7 @@ contract Subscription is Ownable, Pausable {
             uint256 _subscriptionPrice
         )
     {
-        Subscription memory subscription = subscriptions[_customer];
+        SubscriptionStruct memory subscription = subscriptions[_customer];
         return (
             IERC20(token).allowance(_customer, address(this)),
             subscription.lastPaid,
@@ -61,34 +61,13 @@ contract Subscription is Ownable, Pausable {
         uint96 _amount,
         SubscriptionTypeEnum _subscriptionType
     ) external onlyOwner whenNotPaused {
-        Subscription memory subscription = Subscription({
+        SubscriptionStruct memory subscription = SubscriptionStruct({
             remainingRuns:_runs,
-            lastPaid: uint96(block.timestamp),
+            lastPaid: 0,
             amount: _amount,
             subscriptionType: _subscriptionType
         });
         subscriptions[_customer] = subscription;
-    }
-
-    function checkCustomerEligibility(address _customer)
-        external
-        view
-        returns (bool)
-    {
-        Subscription memory subscription = subscriptions[_customer];
-        bool isAllowedRuns = subscription.remainingRuns > 0;
-        bool notTimeLocked = true;
-        if (subscription.subscriptionType == subscriptionTypeEnum.MONTHLY) {
-            notTimeLocked = (block.timestamp - subscription.lastPaid) >= 27 days;
-        } else {
-            notTimeLocked = (block.timestamp - subscription.lastPaid) >= 364 days;
-        }
-        bool isEnoughAllowance = IERC20(token).allowance(
-            _customer,
-            address(this)
-        ) >= amount[_customer];
-
-        return isAllowedRuns && notTimeLocked && isEnoughAllowance;
     }
 
     function runSubscription(address _customer)
@@ -96,7 +75,7 @@ contract Subscription is Ownable, Pausable {
         onlyAllowed
         whenNotPaused
     {
-        Subscription memory subscription = subscriptions[_customer];
+        SubscriptionStruct memory subscription = subscriptions[_customer];
         
         // Checks
         require(subscription.remainingRuns > 0, "No runs remaining");

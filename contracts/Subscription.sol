@@ -15,8 +15,8 @@ contract Subscription is Ownable, Pausable {
     address public merchant;
 
     struct SubscriptionStruct {
-        uint96 remainingRuns;
-        uint96 lastPaid;
+        uint16 remainingRuns;
+        uint64 lastPaid;
         uint96 amount;
         SubscriptionTypeEnum subscriptionType;
     }
@@ -41,9 +41,9 @@ contract Subscription is Ownable, Pausable {
         view
         returns (
             uint256 _allowance,
-            uint96 _lastPaid,
-            uint96 _runs,
-            uint256 _subscriptionPrice
+            uint64 _lastPaid,
+            uint16 _runs,
+            uint96 _subscriptionPrice
         )
     {
         SubscriptionStruct memory subscription = subscriptions[_customer];
@@ -57,7 +57,7 @@ contract Subscription is Ownable, Pausable {
 
     function createSubscription(
         address _customer,
-        uint96 _runs,
+        uint16 _runs,
         uint96 _amount,
         SubscriptionTypeEnum _subscriptionType
     ) external onlyOwner whenNotPaused {
@@ -92,7 +92,7 @@ contract Subscription is Ownable, Pausable {
         }
 
         // Effects
-        subscription.lastPaid = uint96(block.timestamp);
+        subscription.lastPaid = uint64(block.timestamp);
         subscription.remainingRuns -= 1;
 
         // Update subscription state

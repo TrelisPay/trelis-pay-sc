@@ -4,49 +4,28 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 
-abstract contract ReentrancyGuard {
-    mapping (address => bool) internal locked;
 
-    modifier noReentrant(address _customer) {
-        require(!locked[_customer], "One transaction is already running");
-        locked[_customer] = true;
-        _;
-        locked[_customer] = false;
-    }
-}
-
-contract Subscription is Ownable, Pausable, ReentrancyGuard {
-    enum subscriptionTypeEnum {
+contract Subscription is Ownable, Pausable {
+    enum SubscriptionTypeEnum {
         MONTHLY,
         YEARLY
     }
+    
+    address public token;
+    address public merchant;
 
-    mapping(address => uint256) private remainingRuns;
-    mapping(address => uint256) private lastPaid;
-    mapping(address => uint256) private amount;
-    mapping(address => subscriptionTypeEnum) subscriptionType;
-    address private token;
-    address private merchant;
+    struct SubscriptionStruct {
+        uint16 remainingRuns;
+        uint64 lastPaid;
+        uint96 amount;
+        SubscriptionTypeEnum subscriptionType;
+    }
+
+    mapping(address => SubscriptionStruct) public subscriptions;
 
     constructor(address _token, address _merchant) {
         token = _token;
         merchant = _merchant;
-    }
-
-    modifier eligiblePayment(address _customer) {
-        require(remainingRuns[_customer] > 0, "No runs remaining");
-        if (subscriptionType[_customer] == subscriptionTypeEnum.MONTHLY) {
-            require(
-                (block.timestamp - lastPaid[_customer]) >= 27 days,
-                "Already run within a month"
-            );
-        } else {
-            require(
-                (block.timestamp - lastPaid[_customer]) >= 364 days,
-                "Already run within a year"
-            );
-        }
-        _;
     }
 
     modifier onlyAllowed() {
@@ -57,80 +36,74 @@ contract Subscription is Ownable, Pausable, ReentrancyGuard {
         _;
     }
 
-    modifier enoughAllowance(address _customer) {
-        require(
-            IERC20(token).allowance(_customer, address(this)) >=
-                amount[_customer],
-            "Not enough allowance"
-        );
-        _;
-    }
-
     function checkSubscription(address _customer)
         external
         view
         returns (
             uint256 _allowance,
-            uint256 _lastPaid,
-            uint256 _runs,
-            uint256 _subscriptionPrice
+            uint64 _lastPaid,
+            uint16 _runs,
+            uint96 _subscriptionPrice
         )
     {
+        SubscriptionStruct memory subscription = subscriptions[_customer];
         return (
             IERC20(token).allowance(_customer, address(this)),
-            lastPaid[_customer],
-            remainingRuns[_customer],
-            amount[_customer]
+            subscription.lastPaid,
+            subscription.remainingRuns,
+            subscription.amount 
         );
-    }
-
-    function checkCustomerEligibility(address _customer)
-        external
-        view
-        returns (bool)
-    {
-        bool isAllowedRuns = remainingRuns[_customer] > 0;
-        bool notTimeLocked = true;
-        if (subscriptionType[_customer] == subscriptionTypeEnum.MONTHLY) {
-            notTimeLocked = (block.timestamp - lastPaid[_customer]) >= 27 days;
-        } else {
-            notTimeLocked = (block.timestamp - lastPaid[_customer]) >= 364 days;
-        }
-        bool isEnoughAllowance = IERC20(token).allowance(
-            _customer,
-            address(this)
-        ) >= amount[_customer];
-
-        return isAllowedRuns && notTimeLocked && isEnoughAllowance;
     }
 
     function createSubscription(
         address _customer,
-        uint256 _runs,
-        uint256 _amount,
-        subscriptionTypeEnum _subscriptionType
+        uint16 _runs,
+        uint96 _amount,
+        SubscriptionTypeEnum _subscriptionType
     ) external onlyOwner whenNotPaused {
-        remainingRuns[_customer] = _runs;
-        amount[_customer] = _amount;
-        subscriptionType[_customer] = _subscriptionType;
-        lastPaid[_customer] = 0;
+        SubscriptionStruct memory subscription = SubscriptionStruct({
+            remainingRuns:_runs,
+            lastPaid: 0,
+            amount: _amount,
+            subscriptionType: _subscriptionType
+        });
+        subscriptions[_customer] = subscription;
     }
 
     function runSubscription(address _customer)
         external
-        eligiblePayment(_customer)
-        enoughAllowance(_customer)
-        noReentrant(_customer)
         onlyAllowed
         whenNotPaused
     {
+        SubscriptionStruct memory subscription = subscriptions[_customer];
+        
+        // Checks
+        require(subscription.remainingRuns > 0, "No runs remaining");
+        if (subscription.subscriptionType == SubscriptionTypeEnum.MONTHLY) {
+            require(
+                (block.timestamp - subscription.lastPaid) >= 27 days,
+                "Already run within a month"
+            );
+        } else {
+            require(
+                (block.timestamp - subscription.lastPaid) >= 364 days,
+                "Already run within a year"
+            );
+        }
+
+        // Effects
+        subscription.lastPaid = uint64(block.timestamp);
+        subscription.remainingRuns -= 1;
+
+        // Update subscription state
+        subscriptions[_customer] = subscription;
+
+        // Interactions
         bool success = IERC20(token).transferFrom(
             _customer,
             merchant,
-            amount[_customer]
+            uint256(subscription.amount)
         );
         require(success, "Transfer failed");
-        lastPaid[_customer] = block.timestamp;
-        remainingRuns[_customer] -= 1;
     }
 }

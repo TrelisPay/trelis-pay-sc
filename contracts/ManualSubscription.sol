@@ -12,17 +12,24 @@ contract ManualSubscription is Ownable {
         merchant = _merchant;
     }
 
+    modifier onlyAllowed() {
+        require(
+            owner() == msg.sender || merchant == msg.sender,
+            "Not allowed user"
+        );
+        _;
+    }
+
     function runSubscription(address _customer, uint256 _amount)
         external
         onlyAllowed
-        whenNotPaused
     {   
         // Checks
         require(IERC20(token).allowance(_customer, address(this)) >= _amount, "Insufficient allowance");
         bool success = IERC20(token).transferFrom(
             _customer,
             merchant,
-            uint256(subscription.amount)
+            uint256(_amount)
         );
         require(success, "Transfer failed");
     }

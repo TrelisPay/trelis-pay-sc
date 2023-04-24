@@ -7,10 +7,8 @@ contract ManualSubscription is Ownable {
     address public token;
     address public merchant;
 
-    address owner;
-    
-    constructor(address _owner) {
-        owner = _owner;
+    constructor(address initialOwner) {
+        transferOwnership(initialOwner);
     }
 
     constructor(address _token, address _merchant) {
